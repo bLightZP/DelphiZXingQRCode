@@ -29,7 +29,7 @@ type
   private
     QRCodeBitmap: TBitmap;
   public
-    procedure Update;
+    procedure UpdateQRCode;
   end;
 
 var
@@ -41,23 +41,23 @@ implementation
 
 procedure TForm1.cmbEncodingChange(Sender: TObject);
 begin
-  Update;
+  UpdateQRCode;
 end;
 
 procedure TForm1.edtQuietZoneChange(Sender: TObject);
 begin
-  Update;
+  UpdateQRCode;
 end;
 
 procedure TForm1.edtTextChange(Sender: TObject);
 begin
-  Update;
+  UpdateQRCode;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   QRCodeBitmap := TBitmap.Create;
-  Update;
+  UpdateQRCode;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
@@ -81,32 +81,36 @@ begin
       Scale := PaintBox1.Height / QRCodeBitmap.Height;
     end;
     PaintBox1.Canvas.StretchDraw(Rect(0, 0, Trunc(Scale * QRCodeBitmap.Width), Trunc(Scale * QRCodeBitmap.Height)), QRCodeBitmap);
+    //PaintBox1.Canvas.Draw(0,0,QRCodeBitmap);;
   end;
 end;
 
-procedure TForm1.Update;
+procedure TForm1.UpdateQRCode;
+type
+  TMyScanLine32  = Array[0..16383] of TColor;
 var
-  QRCode: TDelphiZXingQRCode;
-  Row, Column: Integer;
+  QRCode         : TDelphiZXingQRCode;
+  Row, Column    : Integer;
+  PS32           : ^TMyScanLine32;
+  PSDif          : Integer;
 begin
   QRCode := TDelphiZXingQRCode.Create;
   try
-    QRCode.Data := edtText.Text;
-    QRCode.Encoding := TQRCodeEncoding(cmbEncoding.ItemIndex);
+    QRCode.Data      := edtText.Text;
+    QRCode.Encoding  := TQRCodeEncoding(cmbEncoding.ItemIndex);
     QRCode.QuietZone := StrToIntDef(edtQuietZone.Text, 4);
     QRCodeBitmap.SetSize(QRCode.Rows, QRCode.Columns);
+    QRCodeBitmap.PixelFormat := pf32bit;
+
+    PS32  := QRCodeBitmap.ScanLine[0];
+    PSDif := Integer(QRCodeBitmap.ScanLine[1])-Integer(PS32);
     for Row := 0 to QRCode.Rows - 1 do
     begin
       for Column := 0 to QRCode.Columns - 1 do
       begin
-        if (QRCode.IsBlack[Row, Column]) then
-        begin
-          QRCodeBitmap.Canvas.Pixels[Column, Row] := clBlack;
-        end else
-        begin
-          QRCodeBitmap.Canvas.Pixels[Column, Row] := clWhite;
-        end;
+        If (QRCode.IsBlack[Row, Column]) then PS32^[Column] := clBlack else PS32^[Column] := clWhite;
       end;
+      Inc(Integer(PS32),PSDif);
     end;
   finally
     QRCode.Free;
@@ -115,3 +119,6 @@ begin
 end;
 
 end.
+
+
+
