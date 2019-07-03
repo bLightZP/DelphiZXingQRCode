@@ -1,4 +1,5 @@
 Fork notes:
+===========
 1. Several of the pull requests that were not integrated into the original version are present in this fork.
 2. The test app has been optimized to generate the unscaled QRCode image upto x50 faster.
 
